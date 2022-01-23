@@ -3,19 +3,38 @@
 
 $zsh = <<-'SCRIPT'
   ZDIR=/home/vagrant/.oh-my-zsh
+  ZSHRC=/home/vagrant/.zshrc
+  CURR_SHELL=$(echo $0)
+  pushd /home/vagrant
   if ! [ -e $ZDIR ]; then
     git clone git://github.com/robbyrussell/oh-my-zsh.git ~/.oh-my-zsh
   else
     echo -- $ZDIR already exists... skipping
   fi
-  if ! [ -e /home/vagrant/.zshrc ]; then
+  if ! [ -e $ZSHRC ]; then
     echo -- applying oh-my-zsh config to .zshrc
     cp ~/.oh-my-zsh/templates/zshrc.zsh-template ~/.zshrc
   fi
-  if ! [ -e $ZSH_VERSION ]; then
+  if ! [ $(echo $0 | grep -c zsh) -gt 0 ]; then
     sudo chsh -s /bin/zsh vagrant
+    sudo sed -i "s!/home/vagrant:/bin/bash!/home/vagrant:/bin/zsh!" /etc/passwd
+    zsh
   else
-    echo -- "zsh is already the default shell"
+    echo -- zsh is already the default shell
+  fi
+  ASDF=asdf
+  if ! [[ $(grep $ASDF $ZSHRC) ]]; then
+    echo -- adding asdf to zshrc
+    sed -i "s/plugins=(/plugins=( $ASDF /" $ZSHRC
+    if ! [ -e ~/.asdf ]; then
+      echo -- downloading asdf to ~/.asdf
+      git clone https://github.com/asdf-vm/asdf.git ~/.asdf
+      ~/.asdf/asdf.sh
+    fi
+    echo -- reloading zsh
+    /bin/zsh -c "source ~/.zshrc"
+  else
+    echo "-- asdf plugin already found in zshrc"
   fi
 SCRIPT
 #
@@ -28,15 +47,21 @@ $python = <<-'SCRIPT'
   sudo apt-get install -y make build-essential libssl-dev zlib1g-dev \
   libbz2-dev libreadline-dev libsqlite3-dev wget curl llvm libncurses5-dev \
   libncursesw5-dev xz-utils tk-dev libffi-dev liblzma-dev python-openssl
-  if ! [ -e /home/vagrant/.pyenv ]; then
-    curl https://pyenv.run | bash
-    cat > .zshrc <<'EOF'
-      export PATH="$HOME/.pyenv/bin:$PATH"
-      eval "$(pyenv init -)"
-      eval "$(pyenv virtualenv-init -)"
-EOF
-    exec "$SHELL"
-  fi 
+  cat <<'EOF'>run.zsh
+  source ~/.zshrc
+  asdf>/dev/null || echo -- asdf not found
+  asdf list
+  if ! [[ $(asdf list | grep python) ]]; then 
+      source ~/.zshrc 
+      asdf plugin-add python
+      asdf install python latest
+  else
+    echo python from asdf already detected
+  fi
+"
+'EOF'
+  zsh run.zsh
+  rm run.zsh
 SCRIPT
 
 $emacs = <<-'SCRIPT'
