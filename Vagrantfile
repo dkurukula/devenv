@@ -107,10 +107,10 @@ Vagrant.configure("2") do |config|
       sudo apt install -y git expect zsh
     SHELL
   end
-  config.vm.provision "install oh-my-zsh", type:"shell", 
+  config.vm.provision "install oh-my-zsh and asdf", type:"shell", 
     privileged: false, inline: $zsh
   config.vm.provision "install neovim", type:"shell", inline: $vim
-  config.vm.provision "install pyenv", type:"shell", 
+  config.vm.provision "install latest python", type:"shell", 
     privileged: false, inline: $python
   config.vm.provision "install emacs", type:"shell", inline: $emacs
 
